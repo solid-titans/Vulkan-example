@@ -36,6 +36,8 @@ int main(void) {
 
     }
 
+    vulkanRenderer.cleanup();   // Limpar as instancias do vulkan
+
     // Desligando a janela
     glfwDestroyWindow(window);  // Desligando a janela do app
     glfwTerminate();            // Desligando o glfw
