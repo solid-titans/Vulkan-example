@@ -1,5 +1,5 @@
 all:
-	g++ main.cpp -lglfw -LGL -o Vulkan
+	g++ main.cpp -lglfw -lvulkan -o Vulkan
 
 run: all
 	./Vulkan
