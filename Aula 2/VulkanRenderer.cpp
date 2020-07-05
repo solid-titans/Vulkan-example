@@ -11,6 +11,7 @@ int VulkanRenderer::init(GLFWwindow *newWindow) {
     try {
         createInstance();
         getPhysicalDevice();
+        createLogicalDevice();
     
     } catch(const std::runtime_error &e) {
         printf("ERROR: %s\n", e.what());
@@ -33,7 +34,7 @@ void VulkanRenderer::createInstance() {
     appInfo.applicationVersion  = VK_MAKE_VERSION(1, 0, 0);                // Versao customizada da aplicacao
     appInfo.pEngineName         = "lusantisuper Engine";                   // Nome da Engine da minha aplicacao
     appInfo.engineVersion       = VK_MAKE_VERSION(1, 0, 0);                // Versao da minha engine
-    appInfo.apiVersion          = VK_API_VERSION_1_0;                      // Versao do Vulkan
+    appInfo.apiVersion          = VK_API_VERSION_1_2;                      // Versao do Vulkan
 
     // Criando a informacao de uma instancia de Vulkan
     VkInstanceCreateInfo createInfo = {};
@@ -77,6 +78,32 @@ void VulkanRenderer::createInstance() {
     }
 }
 
+void VulkanRenderer::getPhysicalDevice() {
+    // Numerar quantas GPUs a maquina possui
+    uint32_t deviceCounter = 0;
+
+    vkEnumeratePhysicalDevices(instance, &deviceCounter, nullptr);
+
+    // Se nao encontrar dispositivos que suportem vulkan
+    if (deviceCounter == 0) {
+        throw std::runtime_error("Não foram encontradas GPUs que suportem Vulkan!");
+
+    }
+
+    // Pegar a lista das GPUs
+    std::vector<VkPhysicalDevice> deviceList(deviceCounter);
+    vkEnumeratePhysicalDevices(instance, &deviceCounter, deviceList.data());
+
+    for(const auto &device : deviceList) {
+        if(checkDeviceSuitable(device)) {
+            mainDevice.physicalDevice = device;
+            break;
+
+        }
+
+    }
+}
+
 bool VulkanRenderer::checkInstanceExtensionSupport(std::vector<const char*>* checkExtensions) {
     // Preciso do tamanho da lista antes de cria-la para criar um vector que possa suporta-la
     uint32_t extensionsCount = 0;
@@ -108,5 +135,59 @@ bool VulkanRenderer::checkInstanceExtensionSupport(std::vector<const char*>* che
 
 void VulkanRenderer::cleanup() {
     vkDestroyInstance(instance, nullptr);
+
+}
+
+bool VulkanRenderer::checkDeviceSuitable(VkPhysicalDevice device) {
+    /*
+    // Informacao do dispositivo
+    VkPhysicalDeviceProperties deviceProperties;
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+    // Informacoes sobre o que a GPU pode fazer
+    VkPhysicalDeviceFeatures deviceFeatures;
+    vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+    */
+
+    QueueFamilyIndices indices = getQueueFamilies(device);
+
+    return indices.isValid();
+}
+
+QueueFamilyIndices VulkanRenderer::getQueueFamilies(VkPhysicalDevice device) {
+    QueueFamilyIndices indices;
+
+    // Pegar todas as informacoes de uma GPU
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilyList(queueFamilyList);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilyList.data());
+
+    // Verificar se o dispositivo suporta pelo menos um tipo de fila Familia
+    int i = 0;
+    for(const auto &queueFamily : queueFamilyList) {
+        // Checar se a fila de familia possui pelo menos uma fila suportada
+        // Filas podem ser de varios tipos definidas por uma bitfield. Precisa de um bitwise AND com VK_QUEUE_*_BIT para ver se há pelo menos um suportado
+        if(queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = i;         // Se a fila de Familia for valida, então pegar o index
+
+        }
+
+        // Checar se uma fila de familia é válida, caso seja, pare de procurar
+        if(indices.isValid()) {
+            break;
+
+        }
+
+        i++;
+    }
+
+    return indices;
+}
+
+void VulkanRenderer::createLogicalDevice() {
+    VkDeviceCreateInfo deviceCreateInfo = {};
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
 }
